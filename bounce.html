@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Test</title>
+    <script src="scripts/kinetic.js"></script>
+    <style>
+    canvas:first-of-type {
+        border: 1px solid black !important;
+    }
+    </style>
+</head>
+
+<body>
+    <div id="container"></div>
+    <script>
+
+    /* globals Kinetic */
+    var stage = new Kinetic.Stage({
+        container: 'container',
+        width: 500,
+        height: 300
+    });
+    var layer = new Kinetic.Layer();
+    var bgLayer = new Kinetic.Layer();
+    stage.add(layer);
+    stage.add(bgLayer);
+    
+    var wordsDictionary = [
+      {"word":"HONEY"     , "image":"images/HONEY.jpg", "group":"0", "XX":5, "YY":2, "horizontal":false , "hint":"Starts with 'h' and ends with 'Y'"},
+      {"word":"LEEK"      , "image":"images/HONEY.jpg", "group":"0", "XX":3, "YY":5, "horizontal":true  , "hint":"Starts with 'L' and ends with 'K'"},
+      {"word":"PALE"      , "image":"images/HONEY.jpg", "group":"0", "XX":3, "YY":3, "horizontal":false , "hint":"Starts with 'P' and ends with 'E'"},
+      {"word":"PROPOSAL"  , "image":"images/HONEY.jpg", "group":"0", "XX":3, "YY":3, "horizontal":true  , "hint":"Starts with 'P' and ends with 'L'"},
+      
+      {"word":"CASTLE"    , "image":"images/HONEY.jpg", "group":"1", "XX":3, "YY":3, "horizontal":false , "hint":"Starts with 'P' and ends with 'L'"},
+      {"word":"COBRA"     , "image":"images/HONEY.jpg", "group":"1", "XX":3, "YY":3, "horizontal":true  , "hint":"Starts with 'P' and ends with 'L'"},
+      {"word":"BRAIN"     , "image":"images/HONEY.jpg", "group":"1", "XX":5, "YY":3, "horizontal":false , "hint":"Starts with 'P' and ends with 'L'"},
+      {"word":"STALACTITE", "image":"images/HONEY.jpg", "group":"1", "XX":3, "YY":5, "horizontal":true  , "hint":"Starts with 'P' and ends with 'L'"},
+      
+      {"word":"SUDOKU"    , "image":"images/HONEY.jpg", "group":"2", "XX":2, "YY":3, "horizontal":true  , "hint":"Starts with 'P' and ends with 'L'"},
+      {"word":"BURST"     , "image":"images/HONEY.jpg", "group":"2", "XX":3, "YY":2, "horizontal":false , "hint":"Starts with 'P' and ends with 'L'"},
+      {"word":"SURREALISM", "image":"images/HONEY.jpg", "group":"2", "XX":3, "YY":5, "horizontal":true  , "hint":"Starts with 'P' and ends with 'L'"},
+      {"word":"BOAR"      , "image":"images/HONEY.jpg", "group":"2", "XX":5, "YY":2, "horizontal":false , "hint":"Starts with 'P' and ends with 'L'"},
+      
+      {"word":"FAUN"      , "image":"images/HONEY.jpg", "group":"3", "XX":3, "YY":3, "horizontal":true  , "hint":"No idea."},
+      {"word":"CUPCAKE"   , "image":"images/HONEY.jpg", "group":"3", "XX":5, "YY":2, "horizontal":false , "hint":"Desert: starts with 'CUP'"},
+      {"word":"SHARPENER" , "image":"images/HONEY.jpg", "group":"3", "XX":3, "YY":6, "horizontal":true  , "hint":"tool used to sharpen pencils"},
+      {"word":"FLASH"     , "image":"images/HONEY.jpg", "group":"3", "XX":3, "YY":3, "horizontal":false , "hint":"Part of a photo camera that emits bright light"}
+      
+    ];
+    
+    var words = [];
+    var SelectedWord = 0;
+    var WordIndex = 0; //Current "write index/cursor" inside the word.
+    var tmpStr = '';  //holds the input for the current word.
+
+    //Render(infinite loop)
+    function animationStep() {
+        layer.draw();
+        bgLayer.draw();
+        requestAnimationFrame(animationStep);
+    }
+    animationStep();
+
+   
+    
+    function InitCrossword() {
+      var group = Math.floor(Math.random()*(wordsDictionary.length/4));
+      
+      //random offsets for more 'visible' diversity
+      var RandomOffsetX = Math.random() < 0.5 ? -group+1 : group+1;
+      var RandomOffsetY = Math.random() < 0.5 ? -group/2 : group/2;
+      
+      for(var i =1;i<=4;i++){
+        words[i] = wordsDictionary[i-1+(group*4)];
+        words[i].cells = [];
+        words[i].locked = false; //completed
+        words[i].XX += RandomOffsetX;
+        words[i].YY += RandomOffsetY;
+        words[i].cells = [];
+        
+        //init cells        
+        for(var k=0;k<words[i].word.length;k++){
+          if(words[i].horizontal){
+            createRect(i,k,words[i].XX+k,words[i].YY);
+          }
+          else{
+            createRect(i,k,words[i].XX,words[i].YY+k);  
+          }
+        }
+        
+        document.write(words[i].word+ "("+ words[i].horizontal+")|");
+      }
+      
+    }
+    InitCrossword();
+   
+    //created individual rects for "i" word, "k" index in it
+    //XX and YY positions in the layer
+    function createRect(i,k,XX,YY){
+      
+      var existsDuplicate = false; //does exitst a duplicate cell by position XX,YY
+      layer.find('Rect').forEach(
+        function(rectOther){
+            if(rectOther.XX === XX && rectOther.YY === YY){
+              words[i].cells[k] = rectOther;
+              existsDuplicate = true;
+            }
+        }
+      );
+      if(existsDuplicate) return;
+      
+      
+      //else - create new
+      var rect = new Kinetic.Rect({
+                height: 25,
+                width: 25,
+                x: XX*28,
+                y: YY*28,
+                cornerRadius: 5,
+                fill: 'white',
+                stroke: 'black'
+      });
+      rect.XX = XX;
+      rect.YY = YY;
+      rect.idword = i;
+      rect.idindex = k;  
+      rect.locked = false; //locked is when the word is complete
+      
+      //On click of a cell from a word - select the word('blue')
+      // or deselect it('black') if already selected, 
+      // also deselect any other word.
+      // clear all text from all words
+      // "null" the global word-select variables
+      rect.addEventListener('click',function(){
+        var strokeColor = 'black';
+
+        for(var p = 1;p<=words.length-1;p++){
+          for(var z=0;z<words[p].cells.length;z++){
+               if( words[p].cells[z].locked) continue;
+               words[p].cells[z].setStroke('black');   
+               words[p].cells[z].text.setText(''); 
+          }
+        }  
+              
+        WordIndex =0;
+        tmpStr = '';
+        if(SelectedWord === rect.idword) SelectedWord = 0;
+        else {
+            SelectedWord = rect.idword; 
+                for(var p=1;p< words[SelectedWord].cells.length;p++){
+                     if(!words[SelectedWord].cells[p].locked)
+                     words[SelectedWord].cells[p].setStroke('blue');
+                }
+                if(!words[SelectedWord].cells[0].locked)
+                words[SelectedWord].cells[0].setStroke('red');
+        }
+      });
+
+      //Create 'text' for each cell and attach it to the cell
+      var text1 = new Kinetic.Text({
+                 x: rect.getX(),
+                 y: rect.getY(),
+                 text: '',
+                 fontSize: 24,
+                 fontFamily: 'Calibri',
+                 width:rect.getWidth() ,
+                 align: 'center',    
+                 fill: 'black'
+           });
+      text1.setListening(false);
+      rect.text = text1;  
+      
+      //text1.hide();text1.show(); // display or not
+      
+      words[i].cells[k] = rect;
+      layer.add(rect);
+      layer.add(text1);
+    }
+
+
+
+    // keyboard input - works only with english letters(65-90) or
+    // space(32) or backspace(8)
+    // adds the letters one after another in the selected word, 
+    // following the WordIndex and saving the whole text in tmpStr 
+    // each cell contains a copy of each letter
+    // or removes letters on backspace
+    // does nothing to locked cells
+    document.onkeydown = function (e) {
+      e = e || window.event; 
+      if((e.keyCode>=65 && e.keyCode<=90 ) || e.keyCode==8 ||  e.keyCode==32){
+        var inputChar = String.fromCharCode(e.keyCode);
+        var maxWordIndexLength = words[SelectedWord].cells.length-1;
+        
+        if(e.keyCode==8) {WordIndex--;}
+        if(WordIndex <0) {WordIndex = 0;}
+        if(WordIndex > maxWordIndexLength) {WordIndex = maxWordIndexLength;}
+    
+        var currentCell = words[SelectedWord].cells[WordIndex];
+        var nextCell = words[SelectedWord].cells[WordIndex+1];
+        
+       
+        if(e.keyCode==8){ //backspace
+          //remove last letter
+          tmpStr = tmpStr.substring(0, tmpStr.length - 1);
+          if(!currentCell.locked){
+            currentCell.text.setText('');
+          }
+          currentCell.setStroke('red');
+          nextCell.setStroke('blue');
+        }
+        else { // A-Z, " "
+          // if tmpStr's length is the same as the max for the word -
+          // only replace last character
+
+          if(tmpStr.length == words[SelectedWord].cells.length){
+            tmpStr= tmpStr.substring(0, tmpStr.length-1);
+          }
+          if(!currentCell.locked){
+            currentCell.text.setText(inputChar);
+          }
+          tmpStr = tmpStr+currentCell.text.getText();
+          
+          currentCell.setStroke('blue');
+          if(WordIndex == maxWordIndexLength) currentCell.setStroke('red');
+          else nextCell.setStroke('red');
+        }
+        //reset any locked words' colors
+        if(currentCell.locked) {currentCell.setStroke('green');}
+        if(nextCell && nextCell.locked) {nextCell.setStroke('green');}
+      
+        
+        if(e.keyCode!=8){WordIndex++;}
+        
+        //WORD GUESSED
+        if(tmpStr == words[SelectedWord].word) lockWord();
+        
+        //LEVEL COMPLETED
+        if(words[1].locked && words[2].locked && words[3].locked && words[4].locked) {
+           layer.removeChildren();
+           InitCrossword();
+        }
+      }   
+      console.log(tmpStr);
+      
+      
+      
+    };  
+  
+    function lockWord(){
+      for(var i =0; i<words[SelectedWord].cells.length; i++){
+        words[SelectedWord].cells[i].setStroke('green');
+        words[SelectedWord].cells[i].locked = true;      
+      }
+      words[SelectedWord].locked = true;
+    }
+    </script>
+</body>
+
+</html>
